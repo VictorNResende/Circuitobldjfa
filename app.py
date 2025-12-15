@@ -8,9 +8,9 @@ import hashlib
 import os
 
 # ================== CONFIGURAÇÕES ==================
-TIMEOUT_TCP = 4
+TIMEOUT_TCP = 10
 MAX_THREADS = 20
-PORTA_TESTE = 22
+PORTA_TESTE = 8080
 ARQUIVO_PADRAO = "bld_jfa.xlsx"
 
 # ================== USUÁRIOS ==================
