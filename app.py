@@ -11,7 +11,7 @@ import os
 TIMEOUT_TCP = 2
 MAX_THREADS = 20
 PORTA_TESTE = 443  # pode mudar para 80 se quiser
-ARQUIVO_PADRAO = "dados.xlsx"  # Excel que fica no GitHub
+ARQUIVO_PADRAO = "bld_jfa.xlsx"  # Excel que fica no GitHub
 
 # ================== USUÁRIOS ==================
 # ⚠️ Login simples (ideal para MVP / uso gratuito)
