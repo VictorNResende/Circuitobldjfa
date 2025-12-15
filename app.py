@@ -107,7 +107,6 @@ if iniciar:
         location=[df['LATITUDE'].mean(), df['LONGITUDE'].mean()],
         zoom_start=12
     )
-
     for (_, linha), (status, latencia) in zip(df.iterrows(), resultados):
 
     cor = "green" if status == "UP" else "red"
