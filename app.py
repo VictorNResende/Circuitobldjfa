@@ -8,9 +8,9 @@ import hashlib
 import os
 
 # ================== CONFIGURAÇÕES ==================
-TIMEOUT_TCP = 10
+TIMEOUT_TCP = 5
 MAX_THREADS = 20
-PORTAS_TESTE = [443, 80, 8080, 8443]
+PORTA_TESTE = 443
 ARQUIVO_PADRAO = "bld_jfa.xlsx"
 
 # ================== USUÁRIOS ==================
@@ -26,21 +26,17 @@ def autenticar(usuario, senha):
     return usuario in USUARIOS and USUARIOS[usuario] == senha_hash
 
 
-def testar_conectividade(ip):
-    for porta in PORTAS_TESTE:
-        try:
-            sock = socket.create_connection((ip, porta), timeout=TIMEOUT_TCP)
-            sock.close()
-            return "UP", porta
-        except ConnectionRefusedError:
-            # IP respondeu, só recusou a porta
-            return "UP", porta
-        except socket.timeout:
-            continue
-        except Exception:
-            continue
+import time
 
-    return "TIMEOUT", None
+def testar_conectividade(ip, porta=PORTA_TESTE, timeout=TIMEOUT_TCP):
+    inicio = time.time()
+    try:
+        sock = socket.create_connection((ip, porta), timeout=timeout)
+        sock.close()
+        latencia = int((time.time() - inicio) * 1000)  # ms
+        return "UP", latencia
+    except Exception:
+        return "DOWN", None
 
 
 def criar_popup(linha):
@@ -113,30 +109,40 @@ else:
             zoom_start=12
         )
 
-        for (_, linha), status in zip(df.iterrows(), resultados):
-            if status == "UP":
-                cor = "green"
-            elif status == "TIMEOUT":
-                cor = "orange"
-            else:
-                cor = "red"
+      for (_, linha), (status, latencia) in zip(df.iterrows(), resultados):
 
-            folium.Marker(
-                [linha['LATITUDE'], linha['LONGITUDE']],
-                tooltip=linha['CLIENTE'],
-                popup=criar_popup(linha),
-                icon=folium.Icon(color=cor)
-            ).add_to(mapa)
+    cor = "green" if status == "UP" else "red"
 
-            if status != "UP":
-                folium.CircleMarker(
-                    [linha['LATITUDE'], linha['LONGITUDE']],
-                    radius=20,
-                    color='#cc3134',
-                    fill=True,
-                    fill_color='#cc3134',
-                    fill_opacity=0.6
-                ).add_to(mapa)
+    popup_html = f"""
+    <b>Cliente:</b> {linha['CLIENTE']}<br>
+    <b>IP:</b> {linha['IP']}<br>
+    <b>DSG:</b> {linha['DSG']}<br>
+    <b>Sigla:</b> {linha['SIGLA']}<br>
+    <b>Tecnologia:</b> {linha['TEC']}<br>
+    <b>Serviço:</b> {linha['SERVIÇO']}<br>
+    <b>Latência:</b> {latencia} ms
+    """ if latencia else f"""
+    <b>Cliente:</b> {linha['CLIENTE']}<br>
+    <b>IP:</b> {linha['IP']}<br>
+    <b>Status:</b> DOWN
+    """
+
+    folium.Marker(
+        [linha['LATITUDE'], linha['LONGITUDE']],
+        tooltip=linha['CLIENTE'],
+        popup=popup_html,
+        icon=folium.Icon(color=cor)
+    ).add_to(mapa)
+
+    if status == "DOWN":
+        folium.CircleMarker(
+            [linha['LATITUDE'], linha['LONGITUDE']],
+            radius=20,
+            color='#cc3134',
+            fill=True,
+            fill_color='#cc3134',
+            fill_opacity=0.6
+        ).add_to(mapa)
 
         st.session_state.mapa = mapa
 
