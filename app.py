@@ -10,7 +10,7 @@ import os
 # ================== CONFIGURAÇÕES ==================
 TIMEOUT_TCP = 5
 MAX_THREADS = 10
-PORTA_TESTE = 44137
+PORTA_TESTE = 49159
 ARQUIVO_PADRAO = "bld_jfa.xlsx"
 
 # ================== USUÁRIOS ==================
