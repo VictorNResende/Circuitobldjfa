@@ -96,55 +96,55 @@ else:
 
     # ===== Botão START =====
     iniciar = st.button("▶️ START - Executar Monitoramento")
+if iniciar:
+    st.session_state.executado = True
 
-    if iniciar:
-        st.session_state.executado = True
+    with st.spinner("Executando testes de conectividade..."):
+        with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
+            resultados = list(executor.map(testar_conectividade, df['IP']))
 
-        with st.spinner("Executando testes de conectividade..."):
-            with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
-                resultados = list(executor.map(testar_conectividade, df['IP']))
+    mapa = folium.Map(
+        location=[df['LATITUDE'].mean(), df['LONGITUDE'].mean()],
+        zoom_start=12
+    )
 
-        mapa = folium.Map(
-            location=[df['LATITUDE'].mean(), df['LONGITUDE'].mean()],
-            zoom_start=12
-        )
+    for (_, linha), (status, latencia) in zip(df.iterrows(), resultados):
 
-      for (_, linha), (status, latencia) in zip(df.iterrows(), resultados):
+        cor = "green" if status == "UP" else "red"
 
-    cor = "green" if status == "UP" else "red"
+        popup_html = f"""
+        <b>Cliente:</b> {linha['CLIENTE']}<br>
+        <b>IP:</b> {linha['IP']}<br>
+        <b>DSG:</b> {linha['DSG']}<br>
+        <b>Sigla:</b> {linha['SIGLA']}<br>
+        <b>Tecnologia:</b> {linha['TEC']}<br>
+        <b>Serviço:</b> {linha['SERVIÇO']}<br>
+        <b>Latência:</b> {latencia} ms
+        """ if latencia else f"""
+        <b>Cliente:</b> {linha['CLIENTE']}<br>
+        <b>IP:</b> {linha['IP']}<br>
+        <b>Status:</b> DOWN
+        """
 
-    popup_html = f"""
-    <b>Cliente:</b> {linha['CLIENTE']}<br>
-    <b>IP:</b> {linha['IP']}<br>
-    <b>DSG:</b> {linha['DSG']}<br>
-    <b>Sigla:</b> {linha['SIGLA']}<br>
-    <b>Tecnologia:</b> {linha['TEC']}<br>
-    <b>Serviço:</b> {linha['SERVIÇO']}<br>
-    <b>Latência:</b> {latencia} ms
-    """ if latencia else f"""
-    <b>Cliente:</b> {linha['CLIENTE']}<br>
-    <b>IP:</b> {linha['IP']}<br>
-    <b>Status:</b> DOWN
-    """
-
-    folium.Marker(
-        [linha['LATITUDE'], linha['LONGITUDE']],
-        tooltip=linha['CLIENTE'],
-        popup=popup_html,
-        icon=folium.Icon(color=cor)
-    ).add_to(mapa)
-
-    if status == "DOWN":
-        folium.CircleMarker(
-            [linha['LATITUDE'], linha['LONGITUDE']],
-            radius=20,
-            color='#cc3134',
-            fill=True,
-            fill_color='#cc3134',
-            fill_opacity=0.6
+        folium.Marker(
+            location=[linha['LATITUDE'], linha['LONGITUDE']],
+            tooltip=linha['CLIENTE'],
+            popup=popup_html,
+            icon=folium.Icon(color=cor)
         ).add_to(mapa)
 
-        st.session_state.mapa = mapa
+        if status == "DOWN":
+            folium.CircleMarker(
+                location=[linha['LATITUDE'], linha['LONGITUDE']],
+                radius=20,
+                color='#cc3134',
+                fill=True,
+                fill_color='#cc3134',
+                fill_opacity=0.6
+            ).add_to(mapa)
+
+    st.session_state.mapa = mapa
+
 
     # ===== Renderização persistente (HTML PURO – NÃO RERODA) =====
     if st.session_state.executado and 'mapa' in st.session_state:
