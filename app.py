@@ -1,3 +1,13 @@
+# =========================================================
+# 🌐 MAPA DE REDE ONLINE COM LOGIN + BOTÃO START (STREAMLIT)
+# ✔ Compatível com Streamlit Cloud (gratuito)
+# ✔ Login de usuários
+# ✔ Botão START
+# ✔ Planilha fixa no GitHub (bld_jfa.xlsx)
+# ✔ Teste de conectividade TCP (cloud-friendly)
+# ✔ Mapa persiste na tela
+# =========================================================
+
 import streamlit as st
 import pandas as pd
 import folium
@@ -137,11 +147,11 @@ else:
 
         # ===== Renderização persistente (SEM REEXECUTAR TESTES) =====
     if st.session_state.executado and 'mapa' in st.session_state:
-        st_folium(
-            st.session_state.mapa,
-            width=1200,
-            height=650,
-            key="mapa_estatico"
+            # ===== Renderização persistente (mapa NÃO provoca rerun) =====
+    if st.session_state.executado and 'mapa' in st.session_state:
+        st.components.v1.html(
+            st.session_state.mapa.get_root().render(),
+            height=650
         )
 
     if st.button("🚪 Logout"):
@@ -151,3 +161,4 @@ else:
 # ================== RODAPÉ ==================
 st.markdown("---")
 st.markdown("Sistema de Monitoramento de Rede • Streamlit Cloud • Gratuito")
+
