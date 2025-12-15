@@ -109,7 +109,7 @@ if iniciar:
     )
     
     for i in range(len(df)):
-    linha = df.iloc[i]
+        linha = df.iloc[i]
     status, latencia = resultados[i]
 
     cor = "green" if status == "UP" else "red"
