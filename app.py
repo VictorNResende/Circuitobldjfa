@@ -10,7 +10,7 @@ import os
 # ================== CONFIGURAÇÕES ==================
 TIMEOUT_TCP = 10
 MAX_THREADS = 20
-PORTA_TESTE = 8080
+PORTAS_TESTE = [443, 80, 8080, 8443]
 ARQUIVO_PADRAO = "bld_jfa.xlsx"
 
 # ================== USUÁRIOS ==================
@@ -26,17 +26,21 @@ def autenticar(usuario, senha):
     return usuario in USUARIOS and USUARIOS[usuario] == senha_hash
 
 
-def testar_conectividade(ip, porta=PORTA_TESTE, timeout=TIMEOUT_TCP):
-    try:
-        sock = socket.create_connection((ip, porta), timeout=timeout)
-        sock.close()
-        return "UP"
-    except socket.timeout:
-        return "TIMEOUT"
-    except ConnectionRefusedError:
-        return "UP"
-    except Exception:
-        return "DOWN"
+def testar_conectividade(ip):
+    for porta in PORTAS_TESTE:
+        try:
+            sock = socket.create_connection((ip, porta), timeout=TIMEOUT_TCP)
+            sock.close()
+            return "UP", porta
+        except ConnectionRefusedError:
+            # IP respondeu, só recusou a porta
+            return "UP", porta
+        except socket.timeout:
+            continue
+        except Exception:
+            continue
+
+    return "TIMEOUT", None
 
 
 def criar_popup(linha):
