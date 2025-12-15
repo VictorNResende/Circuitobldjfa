@@ -8,8 +8,8 @@ import hashlib
 import os
 
 # ================== CONFIGURAÇÕES ==================
-TIMEOUT_TCP = 5
-MAX_THREADS = 20
+TIMEOUT_TCP = 10
+MAX_THREADS = 10
 PORTA_TESTE = 443
 ARQUIVO_PADRAO = "bld_jfa.xlsx"
 
