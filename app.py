@@ -90,7 +90,7 @@ else:
 
     df = df.dropna(subset=['LATITUDE', 'LONGITUDE', 'IP'])
 
-        # ===== Inicialização de estado =====
+         # ===== Inicialização de estado =====
     if 'executado' not in st.session_state:
         st.session_state.executado = False
 
@@ -99,6 +99,7 @@ else:
 
     if iniciar:
         st.session_state.executado = True
+
         with st.spinner("Executando testes de conectividade..."):
             with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
                 resultados = list(executor.map(testar_conectividade, df['IP']))
@@ -135,11 +136,14 @@ else:
 
         st.session_state.mapa = mapa
 
-        # ===== Renderização persistente (SEM REEXECUTAR TESTES) =====
-    if st.session_state.executado and 'mapa' in st.session_state:
-                # ===== Renderização persistente (mapa NÃO provoca rerun) =====
+    # ===== Renderização persistente (HTML PURO – NÃO RERODA) =====
     if st.session_state.executado and 'mapa' in st.session_state:
         st.components.v1.html(
             st.session_state.mapa.get_root().render(),
             height=650
         )
+
+    # ===== Logout =====
+    if st.button("🚪 Logout"):
+        st.session_state.logado = False
+        st.rerun()
