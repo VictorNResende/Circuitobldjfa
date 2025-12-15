@@ -16,7 +16,7 @@ MAX_THREADS = 20
 # ⚠️ Ideal para MVP / uso público controlado
 USUARIOS = {
     "admin": hashlib.sha256("admin123".encode()).hexdigest(),
-    "usuario": hashlib.sha256("usuario123".encode()).hexdigest()
+    "embratel": hashlib.sha256("Embr@tel21".encode()).hexdigest()
 }
 
 # ================== FUNÇÕES ==================
@@ -73,7 +73,7 @@ if not st.session_state.logado:
         if autenticar(usuario, senha):
             st.session_state.logado = True
             st.success("Login realizado com sucesso")
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.error("Usuário ou senha inválidos")
 
@@ -126,7 +126,7 @@ else:
 
     if st.button("🚪 Logout"):
         st.session_state.logado = False
-        st.experimental_rerun()
+        st.rerun()
 
 # ================== RODAPÉ ==================
 st.markdown("---")
