@@ -108,11 +108,11 @@ if iniciar:
         zoom_start=12
     )
     
-    for item in zip(df.iterrows(), resultados):
-        (_, linha), (status, latencia) = item
+    for i in range(len(df)):
+    linha = df.iloc[i]
+    status, latencia = resultados[i]
 
     cor = "green" if status == "UP" else "red"
-
     latencia_texto = f"{latencia} ms" if latencia is not None else "N/A"
 
     popup_html = (
