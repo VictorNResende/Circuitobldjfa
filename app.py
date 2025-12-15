@@ -1,22 +1,23 @@
-
 import streamlit as st
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
-import subprocess
-import platform
 from concurrent.futures import ThreadPoolExecutor
+import socket
 import hashlib
+import os
 
 # ================== CONFIGURAÇÕES ==================
-TIMEOUT_PING = 2
+TIMEOUT_TCP = 2
 MAX_THREADS = 20
+PORTA_TESTE = 443  # pode mudar para 80 se quiser
+ARQUIVO_PADRAO = "dados.xlsx"  # Excel que fica no GitHub
 
-# ================== USUÁRIOS (SIMPLES / GRATUITO) ==================
-# ⚠️ Ideal para MVP / uso público controlado
+# ================== USUÁRIOS ==================
+# ⚠️ Login simples (ideal para MVP / uso gratuito)
 USUARIOS = {
     "admin": hashlib.sha256("admin123".encode()).hexdigest(),
-    "embratel": hashlib.sha256("Embr@tel21".encode()).hexdigest()
+    "usuario": hashlib.sha256("usuario123".encode()).hexdigest()
 }
 
 # ================== FUNÇÕES ==================
@@ -26,19 +27,17 @@ def autenticar(usuario, senha):
     return usuario in USUARIOS and USUARIOS[usuario] == senha_hash
 
 
-def ping_ip(ip):
-    param = '-n' if platform.system().lower() == 'windows' else '-c'
-    comando = ['ping', param, '1', ip]
+def testar_conectividade(ip, porta=PORTA_TESTE, timeout=TIMEOUT_TCP):
     try:
-        resultado = subprocess.run(
-            comando,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            timeout=TIMEOUT_PING
-        )
-        return resultado.returncode == 0
-    except subprocess.TimeoutExpired:
-        return False
+        sock = socket.create_connection((ip, porta), timeout=timeout)
+        sock.close()
+        return "UP"
+    except socket.timeout:
+        return "TIMEOUT"
+    except ConnectionRefusedError:
+        return "UP"  # host respondeu
+    except Exception:
+        return "DOWN"
 
 
 def criar_popup(linha):
@@ -58,7 +57,7 @@ def criar_popup(linha):
 
 st.set_page_config(page_title="Mapa de Rede", layout="wide")
 
-if 'logado' not in st.session_state:
+if "logado" not in st.session_state:
     st.session_state.logado = False
 
 # ================== LOGIN ==================
@@ -82,17 +81,28 @@ if not st.session_state.logado:
 else:
     st.title("🌐 Mapa de Monitoramento de Rede")
 
-    arquivo = st.file_uploader("📂 Envie a planilha Excel", type=['xlsx'])
+    st.markdown("### 📂 Fonte dos dados")
+
+    arquivo_upload = st.file_uploader("Enviar nova planilha Excel (opcional)", type=['xlsx'])
+
+    if arquivo_upload:
+        df = pd.read_excel(arquivo_upload)
+        st.info("Usando planilha enviada pelo usuário")
+    elif os.path.exists(ARQUIVO_PADRAO):
+        df = pd.read_excel(ARQUIVO_PADRAO)
+        st.info("Usando planilha padrão do sistema")
+    else:
+        st.error("Nenhuma planilha disponível")
+        st.stop()
+
+    df = df.dropna(subset=['LATITUDE', 'LONGITUDE', 'IP'])
 
     iniciar = st.button("▶️ START - Executar Monitoramento")
 
-    if iniciar and arquivo:
-        df = pd.read_excel(arquivo)
-        df = df.dropna(subset=['LATITUDE', 'LONGITUDE', 'IP'])
-
+    if iniciar:
         with st.spinner("Executando testes de conectividade..."):
             with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
-                resultados = list(executor.map(ping_ip, df['IP']))
+                resultados = list(executor.map(testar_conectividade, df['IP']))
 
         mapa = folium.Map(
             location=[df['LATITUDE'].mean(), df['LONGITUDE'].mean()],
@@ -100,7 +110,12 @@ else:
         )
 
         for (_, linha), status in zip(df.iterrows(), resultados):
-            cor = 'green' if status else 'red'
+            if status == "UP":
+                cor = "green"
+            elif status == "TIMEOUT":
+                cor = "orange"
+            else:
+                cor = "red"
 
             folium.Marker(
                 [linha['LATITUDE'], linha['LONGITUDE']],
@@ -109,7 +124,7 @@ else:
                 icon=folium.Icon(color=cor)
             ).add_to(mapa)
 
-            if not status:
+            if status != "UP":
                 folium.CircleMarker(
                     [linha['LATITUDE'], linha['LONGITUDE']],
                     radius=20,
@@ -121,13 +136,10 @@ else:
 
         st_folium(mapa, width=1200, height=650)
 
-    elif iniciar and not arquivo:
-        st.warning("Envie uma planilha antes de iniciar")
-
     if st.button("🚪 Logout"):
         st.session_state.logado = False
         st.rerun()
 
 # ================== RODAPÉ ==================
 st.markdown("---")
-st.markdown("Sistema de Monitoramento de Rede • Streamlit • Gratuito")
+st.markdown("Sistema de Monitoramento de Rede • Streamlit Cloud • Gratuito")
