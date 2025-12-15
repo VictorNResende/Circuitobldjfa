@@ -108,22 +108,23 @@ if iniciar:
         zoom_start=12
     )
 
-    for (_, linha), (status, latencia) in zip(df.iterrows(), resultados):
+    for item in zip(df.iterrows(), resultados):
+    (_, linha), (status, latencia) = item
 
     cor = "green" if status == "UP" else "red"
 
     latencia_texto = f"{latencia} ms" if latencia is not None else "N/A"
 
-    popup_html = f"""
-    <b>Cliente:</b> {linha['CLIENTE']}<br>
-    <b>IP:</b> {linha['IP']}<br>
-    <b>DSG:</b> {linha['DSG']}<br>
-    <b>Sigla:</b> {linha['SIGLA']}<br>
-    <b>Tecnologia:</b> {linha['TEC']}<br>
-    <b>Serviço:</b> {linha['SERVIÇO']}<br>
-    <b>Status:</b> {status}<br>
-    <b>Latência:</b> {latencia_texto}
-    """
+    popup_html = (
+        f"<b>Cliente:</b> {linha['CLIENTE']}<br>"
+        f"<b>IP:</b> {linha['IP']}<br>"
+        f"<b>DSG:</b> {linha['DSG']}<br>"
+        f"<b>Sigla:</b> {linha['SIGLA']}<br>"
+        f"<b>Tecnologia:</b> {linha['TEC']}<br>"
+        f"<b>Serviço:</b> {linha['SERVIÇO']}<br>"
+        f"<b>Status:</b> {status}<br>"
+        f"<b>Latência:</b> {latencia_texto}"
+    )
 
     folium.Marker(
         location=[linha['LATITUDE'], linha['LONGITUDE']],
@@ -136,12 +137,13 @@ if iniciar:
         folium.CircleMarker(
             location=[linha['LATITUDE'], linha['LONGITUDE']],
             radius=20,
-            color='#cc3134',
+            color="#cc3134",
             fill=True,
-            fill_color='#cc3134',
+            fill_color="#cc3134",
             fill_opacity=0.6
         ).add_to(mapa)
 
+    
 
     st.session_state.mapa = mapa
 
