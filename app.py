@@ -1,3 +1,5 @@
+
+
 import streamlit as st
 import pandas as pd
 import folium
@@ -83,58 +85,58 @@ else:
 
     st.markdown("### 📂 Fonte dos dados")
 
-    arquivo_upload = st.file_uploader("Enviar nova planilha Excel (opcional)", type=['xlsx'])
+    # ================== LEITURA DA PLANILHA PADRÃO ==================
 
-    if arquivo_upload:
-        df = pd.read_excel(arquivo_upload)
-        st.info("Usando planilha enviada pelo usuário")
-    elif os.path.exists(ARQUIVO_PADRAO):
-        df = pd.read_excel(ARQUIVO_PADRAO)
-        st.info("Usando planilha padrão do sistema")
-    else:
-        st.error("Nenhuma planilha disponível")
-        st.stop()
+if os.path.exists(ARQUIVO_PADRAO):
+    df = pd.read_excel(ARQUIVO_PADRAO)
+    st.info("Planilha padrão carregada")
+else:
+    st.error("Arquivo dados.xlsx não encontrado no repositório")
+    st.stop()
 
     df = df.dropna(subset=['LATITUDE', 'LONGITUDE', 'IP'])
 
     iniciar = st.button("▶️ START - Executar Monitoramento")
 
-    if iniciar:
-        with st.spinner("Executando testes de conectividade..."):
-            with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
-                resultados = list(executor.map(testar_conectividade, df['IP']))
+if iniciar:
+    with st.spinner("Executando testes de conectividade..."):
+        with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
+            resultados = list(executor.map(testar_conectividade, df['IP']))
 
-        mapa = folium.Map(
-            location=[df['LATITUDE'].mean(), df['LONGITUDE'].mean()],
-            zoom_start=12
-        )
+    mapa = folium.Map(
+        location=[df['LATITUDE'].mean(), df['LONGITUDE'].mean()],
+        zoom_start=12
+    )
 
-        for (_, linha), status in zip(df.iterrows(), resultados):
-            if status == "UP":
-                cor = "green"
-            elif status == "TIMEOUT":
-                cor = "orange"
-            else:
-                cor = "red"
+    for (_, linha), status in zip(df.iterrows(), resultados):
+        if status == "UP":
+            cor = "green"
+        elif status == "TIMEOUT":
+            cor = "orange"
+        else:
+            cor = "red"
 
-            folium.Marker(
+        folium.Marker(
+            [linha['LATITUDE'], linha['LONGITUDE']],
+            tooltip=linha['CLIENTE'],
+            popup=criar_popup(linha),
+            icon=folium.Icon(color=cor)
+        ).add_to(mapa)
+
+        if status != "UP":
+            folium.CircleMarker(
                 [linha['LATITUDE'], linha['LONGITUDE']],
-                tooltip=linha['CLIENTE'],
-                popup=criar_popup(linha),
-                icon=folium.Icon(color=cor)
+                radius=20,
+                color='#cc3134',
+                fill=True,
+                fill_color='#cc3134',
+                fill_opacity=0.6
             ).add_to(mapa)
 
-            if status != "UP":
-                folium.CircleMarker(
-                    [linha['LATITUDE'], linha['LONGITUDE']],
-                    radius=20,
-                    color='#cc3134',
-                    fill=True,
-                    fill_color='#cc3134',
-                    fill_opacity=0.6
-                ).add_to(mapa)
+    st.session_state.mapa = mapa
 
-        st_folium(mapa, width=1200, height=650)
+if 'mapa' in st.session_state:
+    st_folium(st.session_state.mapa, width=1200, height=650)
 
     if st.button("🚪 Logout"):
         st.session_state.logado = False
