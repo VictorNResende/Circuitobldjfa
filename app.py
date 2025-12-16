@@ -8,9 +8,9 @@ import hashlib
 import os
 
 # ================== CONFIGURAÇÕES ==================
-TIMEOUT_TCP = 5
-MAX_THREADS = 10
-PORTA_TESTE = 1060
+TIMEOUT_TCP = 10
+MAX_THREADS = 20
+PORTA_TESTE = 8080
 ARQUIVO_PADRAO = "bld_jfa.xlsx"
 
 # ================== USUÁRIOS ==================
@@ -26,17 +26,17 @@ def autenticar(usuario, senha):
     return usuario in USUARIOS and USUARIOS[usuario] == senha_hash
 
 
-import time
-
 def testar_conectividade(ip, porta=PORTA_TESTE, timeout=TIMEOUT_TCP):
-    inicio = time.time()
     try:
         sock = socket.create_connection((ip, porta), timeout=timeout)
         sock.close()
-        latencia = int((time.time() - inicio) * 1000)  # ms
-        return "UP", latencia
+        return "UP"
+    except socket.timeout:
+        return "TIMEOUT"
+    except ConnectionRefusedError:
+        return "UP"
     except Exception:
-        return "DOWN", None
+        return "DOWN"
 
 
 def criar_popup(linha):
@@ -88,30 +88,7 @@ else:
         st.error(f"Arquivo {ARQUIVO_PADRAO} não encontrado no repositório")
         st.stop()
 
-    st.write("Linhas antes do dropna:", len(df))
-    st.write(df[['IP', 'LATITUDE', 'LONGITUDE']].head(10))
-
-
-    df['IP'] = df['IP'].astype(str).str.strip()
-    df['LATITUDE'] = (
-    df['LATITUDE']
-    .astype(str)
-    .str.replace(',', '.', regex=False)
-    .str.strip()
-    )
-    
-    df['LONGITUDE'] = (
-    df['LONGITUDE']
-    .astype(str)
-    .str.replace(',', '.', regex=False)
-    .str.strip()
-    )
-    df['LATITUDE'] = pd.to_numeric(df['LATITUDE'], errors='coerce')
-    df['LONGITUDE'] = pd.to_numeric(df['LONGITUDE'], errors='coerce')
-    
-    df = df.dropna(subset=['IP', 'LATITUDE', 'LONGITUDE'])
-    
-    st.write("Total válido após limpeza:", len(df))
+    df = df.dropna(subset=['LATITUDE', 'LONGITUDE', 'IP'])
 
          # ===== Inicialização de estado =====
     if 'executado' not in st.session_state:
@@ -119,57 +96,45 @@ else:
 
     # ===== Botão START =====
     iniciar = st.button("▶️ START - Executar Monitoramento")
-if iniciar:
-    st.session_state.executado = True
 
-    with st.spinner("Executando testes de conectividade..."):
-        with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
-            resultados = list(executor.map(testar_conectividade, df['IP']))
+    if iniciar:
+        st.session_state.executado = True
 
-    mapa = folium.Map(
-        location=[df['LATITUDE'].mean(), df['LONGITUDE'].mean()],
-        zoom_start=12
-    )
-    
-    for i in range(len(df)):
-        linha = df.iloc[i]
-    status, latencia = resultados[i]
+        with st.spinner("Executando testes de conectividade..."):
+            with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
+                resultados = list(executor.map(testar_conectividade, df['IP']))
 
-    cor = "green" if status == "UP" else "red"
-    latencia_texto = f"{latencia} ms" if latencia is not None else "N/A"
+        mapa = folium.Map(
+            location=[df['LATITUDE'].mean(), df['LONGITUDE'].mean()],
+            zoom_start=12
+        )
 
-    popup_html = (
-        f"<b>Cliente:</b> {linha['CLIENTE']}<br>"
-        f"<b>IP:</b> {linha['IP']}<br>"
-        f"<b>DSG:</b> {linha['DSG']}<br>"
-        f"<b>Sigla:</b> {linha['SIGLA']}<br>"
-        f"<b>Tecnologia:</b> {linha['TEC']}<br>"
-        f"<b>Serviço:</b> {linha['SERVIÇO']}<br>"
-        f"<b>Status:</b> {status}<br>"
-        f"<b>Latência:</b> {latencia_texto}"
-    )
+        for (_, linha), status in zip(df.iterrows(), resultados):
+            if status == "UP":
+                cor = "green"
+            elif status == "TIMEOUT":
+                cor = "orange"
+            else:
+                cor = "red"
 
-    folium.Marker(
-        location=[linha['LATITUDE'], linha['LONGITUDE']],
-        tooltip=linha['CLIENTE'],
-        popup=popup_html,
-        icon=folium.Icon(color=cor)
-    ).add_to(mapa)
+            folium.Marker(
+                [linha['LATITUDE'], linha['LONGITUDE']],
+                tooltip=linha['CLIENTE'],
+                popup=criar_popup(linha),
+                icon=folium.Icon(color=cor)
+            ).add_to(mapa)
 
-    if status == "DOWN":
-        folium.CircleMarker(
-            location=[linha['LATITUDE'], linha['LONGITUDE']],
-            radius=20,
-            color="#cc3134",
-            fill=True,
-            fill_color="#cc3134",
-            fill_opacity=0.6
-        ).add_to(mapa)
+            if status != "UP":
+                folium.CircleMarker(
+                    [linha['LATITUDE'], linha['LONGITUDE']],
+                    radius=20,
+                    color='#cc3134',
+                    fill=True,
+                    fill_color='#cc3134',
+                    fill_opacity=0.6
+                ).add_to(mapa)
 
-    
-
-    st.session_state.mapa = mapa
-
+        st.session_state.mapa = mapa
 
     # ===== Renderização persistente (HTML PURO – NÃO RERODA) =====
     if st.session_state.executado and 'mapa' in st.session_state:
