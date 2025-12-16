@@ -92,8 +92,30 @@ else:
     st.write(df[['IP', 'LATITUDE', 'LONGITUDE']].head(10))
 
 
-    df = df.dropna(subset=['LATITUDE', 'LONGITUDE', 'IP'])
-    st.write("Linhas depois do dropna:", len(df))
+    # Limpeza robusta dos dados
+df['IP'] = df['IP'].astype(str).str.strip()
+
+df['LATITUDE'] = (
+    df['LATITUDE']
+    .astype(str)
+    .str.replace(',', '.', regex=False)
+    .str.strip()
+)
+
+df['LONGITUDE'] = (
+    df['LONGITUDE']
+    .astype(str)
+    .str.replace(',', '.', regex=False)
+    .str.strip()
+)
+
+df['LATITUDE'] = pd.to_numeric(df['LATITUDE'], errors='coerce')
+df['LONGITUDE'] = pd.to_numeric(df['LONGITUDE'], errors='coerce')
+
+df = df.dropna(subset=['IP', 'LATITUDE', 'LONGITUDE'])
+
+st.write("Total válido após limpeza:", len(df))
+
 
          # ===== Inicialização de estado =====
     if 'executado' not in st.session_state:
