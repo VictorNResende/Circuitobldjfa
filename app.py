@@ -88,7 +88,12 @@ else:
         st.error(f"Arquivo {ARQUIVO_PADRAO} não encontrado no repositório")
         st.stop()
 
+    st.write("Linhas antes do dropna:", len(df))
+    st.write(df[['IP', 'LATITUDE', 'LONGITUDE']].head(10))
+
+
     df = df.dropna(subset=['LATITUDE', 'LONGITUDE', 'IP'])
+    st.write("Linhas depois do dropna:", len(df))
 
          # ===== Inicialização de estado =====
     if 'executado' not in st.session_state:
