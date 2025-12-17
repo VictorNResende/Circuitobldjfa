@@ -4,7 +4,6 @@ Sistema online de monitoramento de conectividade IP com visualização geográfi
 
 ## 🚀 Funcionalidades
 - Login de usuários
-- Upload de planilha Excel
 - Botão START para execução
 - Mapa interativo (Folium)
 - Status UP / DOWN por IP
@@ -15,5 +14,3 @@ Sistema online de monitoramento de conectividade IP com visualização geográfi
 - Folium
 - Pandas
 
-## ☁️ Deploy
-Hospedado gratuitamente no Streamlit Cloud.
